@@ -4,7 +4,6 @@ import com.barinthecityshow.vkbot.chain.ChainElement;
 import com.barinthecityshow.vkbot.dialog.QuestionAnswer;
 import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.service.VkApiService;
-import com.barinthecityshow.vkbot.state.ConcurrentMapState;
 import com.barinthecityshow.vkbot.state.State;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageType;
@@ -14,12 +13,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MessageNewHandler extends AbstractNoResponseHandler {
-    private final State<Integer, ChainElement<QuestionAnswer>> state = ConcurrentMapState.INSTANCE;
+    private final State<Integer, ChainElement<QuestionAnswer>> state;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
 
     @Autowired
-    public MessageNewHandler(VkApiService vkApiService, DialogChain dialogChain) {
+    public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> state,
+                             VkApiService vkApiService,
+                             DialogChain dialogChain) {
+        this.state = state;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
     }
