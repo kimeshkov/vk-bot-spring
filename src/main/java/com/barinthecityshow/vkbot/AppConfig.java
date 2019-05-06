@@ -38,9 +38,6 @@ public class AppConfig {
     @Autowired
     private Environment env;
 
-    @Autowired
-    private List<CallbackMessageHandler> callbackMessageHandlers;
-
     @Bean
     public VkApiService vkApiService() {
         HttpTransportClient client = new HttpTransportClient();
@@ -67,12 +64,6 @@ public class AppConfig {
         }
 
         return actor;
-    }
-
-    @Bean
-    public Map<CallbackMessageType, CallbackMessageHandler> handlersByType() {
-        return callbackMessageHandlers.stream()
-                .collect(Collectors.toMap(CallbackMessageHandler::getType, Function.identity()));
     }
 
     @Bean
