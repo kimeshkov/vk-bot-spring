@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 
 @Configuration
-@PropertySource("classpath:config.properties")
 public class AppConfig {
     private static final Logger LOG = LoggerFactory.getLogger(VkApiService.class);
 
