@@ -2,10 +2,8 @@ package com.barinthecityshow.vkbot;
 
 import com.barinthecityshow.vkbot.dialog.QuestionAnswer;
 import com.barinthecityshow.vkbot.dialog.chain.StickerDialogChain;
-import com.barinthecityshow.vkbot.handler.CallbackMessageHandler;
 import com.barinthecityshow.vkbot.service.VkApiService;
 import com.google.gson.Gson;
-import com.vk.api.sdk.callback.objects.messages.CallbackMessageType;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
@@ -16,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
 import java.io.IOException;
@@ -25,8 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -44,7 +39,10 @@ public class AppConfig {
 
         GroupActor actor = initVkApi(apiClient);
 
-        return new VkApiService(apiClient, actor, env.getProperty("confirmationCode"));
+        return new VkApiService(apiClient, actor,
+                env.getProperty("confirmationCode"),
+                env.getProperty("promoAccessToken")
+        );
     }
 
     private GroupActor initVkApi(VkApiClient apiClient) {

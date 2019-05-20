@@ -5,6 +5,7 @@ import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.dialog.chain.QuestionAnswerChainElement;
 import com.barinthecityshow.vkbot.service.VkApiService;
 import com.barinthecityshow.vkbot.state.ConcurrentMapState;
+import com.barinthecityshow.vkbot.state.Counter;
 import com.google.gson.JsonObject;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
 import org.junit.Before;
@@ -36,7 +37,7 @@ public class MessageNewHandlerTest {
     @Before
     public void init() throws Exception {
         reset(vkApiService, dialogChain);
-        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapState(), vkApiService, dialogChain);
+        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapState(), vkApiService, dialogChain, new Counter());
     }
 
     private CallbackMessageBase mockMsg(Integer userId, String msg) {

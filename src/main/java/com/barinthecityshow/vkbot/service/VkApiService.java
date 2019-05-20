@@ -1,5 +1,6 @@
 package com.barinthecityshow.vkbot.service;
 
+import com.barinthecityshow.vkbot.query.Stickers;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
@@ -13,17 +14,21 @@ import java.util.Random;
 public class VkApiService {
     private static final Logger LOG = LoggerFactory.getLogger(VkApiService.class);
 
+    private static final Integer RANDOM_GIFT = -1;
+
     private final VkApiClient apiClient;
     private final GroupActor actor;
     private final String confirmationCode;
+    private final String accessToken;
 
     private final Random random = new Random();
 
 
-    public VkApiService(VkApiClient apiClient, GroupActor actor, String confirmationCode) {
+    public VkApiService(VkApiClient apiClient, GroupActor actor, String confirmationCode, String accessToken) {
         this.apiClient = apiClient;
         this.actor = actor;
         this.confirmationCode = confirmationCode;
+        this.accessToken = accessToken;
     }
 
     public String confirm() {
@@ -63,4 +68,21 @@ public class VkApiService {
             throw new RuntimeException(e);
         }
     }
+
+    public void openPromoStickerPack(Integer userId) {
+        try {
+            new Stickers(apiClient, accessToken).openPromoStickerPack()
+                    .ownerId(-actor.getGroupId())
+                    .giftId(RANDOM_GIFT)
+                    .userId(userId)
+                    .execute();
+        } catch (ApiException e) {
+            LOG.error("INVALID REQUEST", e);
+            throw new RuntimeException(e);
+        } catch (ClientException e) {
+            LOG.error("NETWORK ERROR", e);
+            throw new RuntimeException(e);
+        }
+    }
 }
+

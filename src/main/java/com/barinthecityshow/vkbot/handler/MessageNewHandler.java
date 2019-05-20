@@ -4,26 +4,36 @@ import com.barinthecityshow.vkbot.chain.ChainElement;
 import com.barinthecityshow.vkbot.dialog.QuestionAnswer;
 import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.service.VkApiService;
+import com.barinthecityshow.vkbot.state.Counter;
 import com.barinthecityshow.vkbot.state.State;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageType;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MessageNewHandler extends AbstractNoResponseHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(MessageNewHandler.class);
+
+    private static final int LIMIT = 300;
+
     private final State<Integer, ChainElement<QuestionAnswer>> state;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
+    private final Counter counter;
 
     @Autowired
     public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> state,
                              VkApiService vkApiService,
-                             DialogChain dialogChain) {
+                             DialogChain dialogChain,
+                             Counter counter) {
         this.state = state;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
+        this.counter = counter;
     }
 
     @Override
@@ -48,8 +58,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
             }
 
             ChainElement<QuestionAnswer> first = dialogChain.getFirst();
-            handleNew(userId, first.current());
-            state.put(userId, first);
+            handleNew(userId, first);
 
         } else {
             ChainElement<QuestionAnswer> chainElement = state.get(userId);
@@ -60,8 +69,8 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
             if (isCorrectAnswer(msg, chainElement.current())) {
                 if (chainElement.next().isPresent()) {
                     ChainElement<QuestionAnswer> next = chainElement.next().get();
-                    handleNext(userId, next.current());
-                    state.put(userId, next);
+                    handleNext(userId, next);
+
                 } else {
                     handleWin(userId);
                 }
@@ -69,8 +78,6 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
                 handleWrong(userId);
             }
         }
-
-
     }
 
     private String prepareMsg(String userMsg) {
@@ -81,9 +88,18 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         vkApiService.sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
     }
 
-    private void handleNew(Integer userId, QuestionAnswer first) {
-        String msg = Messages.WELCOME_MSG.getValue().concat(first.getQuestion());
-        vkApiService.sendMessage(userId, msg);
+    private void handleNew(Integer userId, ChainElement<QuestionAnswer> first) {
+        if (underLimit()) {
+            String msg = Messages.WELCOME_MSG.getValue().concat(first.current().getQuestion());
+            vkApiService.sendMessage(userId, msg);
+            state.put(userId, first);
+        } else {
+            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
+        }
+    }
+
+    private boolean underLimit() {
+        return counter.get() < LIMIT;
     }
 
     private boolean isStopMsg(String msg) {
@@ -96,9 +112,10 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
                 .anyMatch(s -> StringUtils.equalsIgnoreCase(prepareMsg(s), prepareMsg(msg)));
     }
 
-    private void handleNext(Integer userId, QuestionAnswer next) {
-        String msg = Messages.CORRECT_ANS_MSG.getValue().concat(next.getQuestion());
-        vkApiService.sendMessage(userId, msg);
+    private void handleNext(Integer userId, ChainElement<QuestionAnswer> next) {
+        String msg = Messages.CORRECT_ANS_MSG.getValue().concat(next.current().getQuestion());
+        vkApiService.sendMessage(userId, msg);//todo
+        state.put(userId, next);
     }
 
     private void handleWrong(Integer userId) {
@@ -107,6 +124,9 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
 
     private void handleWin(Integer userId) {
         vkApiService.sendMessage(userId, Messages.WIN_MSG.getValue());
+        vkApiService.openPromoStickerPack(userId);
+        int current = counter.incrementAndGet();
+        LOG.info("Handle {} winner", current);
         state.remove(userId);
     }
 
