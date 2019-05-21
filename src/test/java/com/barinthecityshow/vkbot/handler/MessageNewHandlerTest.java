@@ -4,7 +4,7 @@ import com.barinthecityshow.vkbot.dialog.QuestionAnswer;
 import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.dialog.chain.QuestionAnswerChainElement;
 import com.barinthecityshow.vkbot.service.VkApiService;
-import com.barinthecityshow.vkbot.state.ConcurrentMapState;
+import com.barinthecityshow.vkbot.state.ConcurrentMapQuestionAnswerState;
 import com.barinthecityshow.vkbot.state.Counter;
 import com.google.gson.JsonObject;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
@@ -12,10 +12,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.Invocation;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.function.Predicate;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -37,7 +43,7 @@ public class MessageNewHandlerTest {
     @Before
     public void init() throws Exception {
         reset(vkApiService, dialogChain);
-        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapState(), vkApiService, dialogChain, new Counter());
+        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapQuestionAnswerState(), vkApiService, dialogChain, new Counter());
     }
 
     private CallbackMessageBase mockMsg(Integer userId, String msg) {
@@ -63,22 +69,6 @@ public class MessageNewHandlerTest {
 
         //assert
         verify(vkApiService, never()).sendMessage(anyInt(), anyString());
-
-    }
-
-    @Test
-    public void shouldSendSubscribeMsg_WhenStickerMsgAndUserNotSubscribed() throws Exception {
-        //arrange
-        String msg = "Хочу стикер";
-        Integer userId = new Random().nextInt();
-
-        when(vkApiService.isSubscribed(userId)).thenReturn(false);
-
-        //act
-        questionAnswerStateMachine.handle(mockMsg(userId, msg));
-
-        //assert
-        verify(vkApiService).sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
 
     }
 
@@ -159,6 +149,32 @@ public class MessageNewHandlerTest {
         //assert
         verify(vkApiService).sendMessage(userId, Messages.WIN_MSG.getValue());
 
+    }
+
+    @Test
+    public void shouldSendSubscribeMsg_WhenCorrectAnswerAndUserNotSubscribed() throws Exception {
+        //arrange
+        String msg = "Хочу стикер";
+        String answer = "Correct";
+        Integer userId = new Random().nextInt();
+
+        QuestionAnswer questionAnswer = QuestionAnswer.builder()
+                .question("What question")
+                .addCorrectAnswer("Correct")
+                .build();
+
+        QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
+
+
+        when(vkApiService.isSubscribed(userId)).thenReturn(false);
+        when(dialogChain.getFirst()).thenReturn(chainElement);
+
+        //act
+        questionAnswerStateMachine.handle(mockMsg(userId, msg));
+        questionAnswerStateMachine.handle(mockMsg(userId, answer));
+
+        //assert
+        verify(vkApiService).sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
     }
 
     @Test

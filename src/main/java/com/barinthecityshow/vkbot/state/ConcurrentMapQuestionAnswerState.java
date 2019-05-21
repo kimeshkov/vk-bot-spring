@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class ConcurrentMapState implements State<Integer, ChainElement<QuestionAnswer>> {
+public class ConcurrentMapQuestionAnswerState implements State<Integer, ChainElement<QuestionAnswer>> {
     private final Map<Integer, ChainElement<QuestionAnswer>> state = new ConcurrentHashMap<>();
 
     @Override

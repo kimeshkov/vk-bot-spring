@@ -20,17 +20,17 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
 
     private static final int LIMIT = 300;
 
-    private final State<Integer, ChainElement<QuestionAnswer>> state;
+    private final State<Integer, ChainElement<QuestionAnswer>> questionAnswerState;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
     private final Counter counter;
 
     @Autowired
-    public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> state,
+    public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> questionAnswerState,
                              VkApiService vkApiService,
                              DialogChain dialogChain,
                              Counter counter) {
-        this.state = state;
+        this.questionAnswerState = questionAnswerState;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
         this.counter = counter;
@@ -48,59 +48,67 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
 
         String msg = prepareMsg(userMsg);
 
-        if (!state.containsKey(userId)) {
-            if (!StringUtils.equalsIgnoreCase(msg, Messages.START_MSG.getValue())) {
-                return;
-            }
-            if (!vkApiService.isSubscribed(userId)) {
-                handleNotSubscribed(userId);
-                return;
-            }
-
-            ChainElement<QuestionAnswer> first = dialogChain.getFirst();
-            handleNew(userId, first);
-
+        if (questionAnswerState.containsKey(userId)) {
+            handleRegisteredUser(userId, msg);
         } else {
-            ChainElement<QuestionAnswer> chainElement = state.get(userId);
-            if (isStopMsg(msg)) {
-                handleStop(userId);
-                return;
-            }
-            if (isCorrectAnswer(msg, chainElement.current())) {
-                if (chainElement.next().isPresent()) {
-                    ChainElement<QuestionAnswer> next = chainElement.next().get();
-                    handleNext(userId, next);
-
-                } else {
-                    handleWin(userId);
-                }
-            } else {
-                handleWrong(userId);
-            }
+            handleNewUser(userId, msg);
         }
+    }
+
+    private void handleNewUser(int userId, String userMsg) {
+        if (!StringUtils.equalsIgnoreCase(userMsg, Messages.START_MSG.getValue())) {
+            return;
+        }
+
+        ChainElement<QuestionAnswer> first = dialogChain.getFirst();
+
+        if (underLimit()) {
+            String msg = Messages.WELCOME_MSG.getValue().concat(first.current().getQuestion());
+            vkApiService.sendMessage(userId, msg);
+            questionAnswerState.put(userId, first);
+        } else {
+            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
+        }
+    }
+
+    private void handleRegisteredUser(int userId, String msg) {
+        if (isStopMsg(msg)) {
+            handleStop(userId);
+            return;
+        }
+
+        ChainElement<QuestionAnswer> chainElement = questionAnswerState.get(userId);
+
+        if(chainElement.current().isAnswered()) {
+            handleAlreadyWinner(userId);
+        }
+
+        if (isCorrectAnswer(msg, chainElement.current())) {
+            if (chainElement.next().isPresent()) {
+                ChainElement<QuestionAnswer> next = chainElement.next().get();
+                handleNext(userId, next);
+
+            } else {
+                handleWin(userId);
+            }
+        } else {
+            handleWrong(userId);
+        }
+    }
+
+    private void handleAlreadyWinner(int userId) {
+        String msg = Messages.ALREADY_WINNER_MSG.getValue();
+        vkApiService.sendMessage(userId, msg);
     }
 
     private String prepareMsg(String userMsg) {
         return StringUtils.replaceChars(userMsg.toUpperCase(), 'Ё', 'Е');
     }
 
-    private void handleNotSubscribed(Integer userId) {
-        vkApiService.sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
-    }
-
-    private void handleNew(Integer userId, ChainElement<QuestionAnswer> first) {
-        if (underLimit()) {
-            String msg = Messages.WELCOME_MSG.getValue().concat(first.current().getQuestion());
-            vkApiService.sendMessage(userId, msg);
-            state.put(userId, first);
-        } else {
-            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
-        }
-    }
-
     private boolean underLimit() {
         return counter.get() < LIMIT;
     }
+
 
     private boolean isStopMsg(String msg) {
         return StringUtils.equalsIgnoreCase(msg, Messages.STOP_MSG.getValue());
@@ -115,7 +123,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private void handleNext(Integer userId, ChainElement<QuestionAnswer> next) {
         String msg = Messages.CORRECT_ANS_MSG.getValue().concat(next.current().getQuestion());
         vkApiService.sendMessage(userId, msg);//todo
-        state.put(userId, next);
+        questionAnswerState.put(userId, next);
     }
 
     private void handleWrong(Integer userId) {
@@ -125,13 +133,22 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private void handleWin(Integer userId) {
         vkApiService.sendMessage(userId, Messages.WIN_MSG.getValue());
         vkApiService.openPromoStickerPack(userId);
+
         int current = counter.incrementAndGet();
         LOG.info("Handle {} winner", current);
-        state.remove(userId);
+        questionAnswerState.get(userId).current().correctAnswer();
+
+        if (!vkApiService.isSubscribed(userId)) {
+            handleNotSubscribed(userId);
+        }
+    }
+
+    private void handleNotSubscribed(Integer userId) {
+        vkApiService.sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
     }
 
     private void handleStop(Integer userId) {
         vkApiService.sendMessage(userId, Messages.BYE_MSG.getValue());
-        state.remove(userId);
+        questionAnswerState.remove(userId);
     }
 }
