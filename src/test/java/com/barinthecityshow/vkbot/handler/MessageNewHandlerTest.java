@@ -27,6 +27,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,6 +93,35 @@ public class MessageNewHandlerTest {
         //assert
         String result = Messages.WELCOME_MSG.getValue().concat(questionAnswer.getQuestion());
         verify(vkApiService).sendMessage(userId, result);
+
+    }
+
+    @Test
+    public void shouldAlreadyWinner_WhenUserTryAgainAfterWin() throws Exception {
+        //arrange
+        Integer userId = new Random().nextInt();
+
+        String msg = "Хочу стикер";
+
+        QuestionAnswer questionAnswer = QuestionAnswer.builder()
+                .question("What question")
+                .addCorrectAnswer("Correct")
+                .build();
+        questionAnswer.correctAnswer();
+
+        QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
+
+        ConcurrentMapQuestionAnswerState state = new ConcurrentMapQuestionAnswerState();
+        state.put(userId, chainElement);
+        questionAnswerStateMachine = new MessageNewHandler(state, vkApiService, dialogChain, new Counter());
+
+        //act
+        questionAnswerStateMachine.handle(mockMsg(userId, msg));
+
+        //assert
+        verify(vkApiService, times(0)).sendMessage(userId, Messages.WRONG_ANS_MSG.getValue());
+
+        verify(vkApiService, times(1)).sendMessage(userId, Messages.ALREADY_WINNER_MSG.getValue());
 
     }
 

@@ -81,6 +81,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
 
         if(chainElement.current().isAnswered()) {
             handleAlreadyWinner(userId);
+            return;
         }
 
         if (isCorrectAnswer(msg, chainElement.current())) {
