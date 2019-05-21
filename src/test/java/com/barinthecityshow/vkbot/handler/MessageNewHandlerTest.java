@@ -5,6 +5,7 @@ import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.dialog.chain.QuestionAnswerChainElement;
 import com.barinthecityshow.vkbot.service.VkApiService;
 import com.barinthecityshow.vkbot.state.ConcurrentMapQuestionAnswerState;
+import com.barinthecityshow.vkbot.state.ConcurrentMapWinnerState;
 import com.barinthecityshow.vkbot.state.Counter;
 import com.google.gson.JsonObject;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
@@ -12,16 +13,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.invocation.Invocation;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Random;
-import java.util.function.Predicate;
 
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -44,7 +39,12 @@ public class MessageNewHandlerTest {
     @Before
     public void init() throws Exception {
         reset(vkApiService, dialogChain);
-        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapQuestionAnswerState(), vkApiService, dialogChain, new Counter());
+        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapQuestionAnswerState(),
+                new ConcurrentMapWinnerState(),
+                vkApiService,
+                dialogChain,
+                new Counter()
+        );
     }
 
     private CallbackMessageBase mockMsg(Integer userId, String msg) {
@@ -97,7 +97,7 @@ public class MessageNewHandlerTest {
     }
 
     @Test
-    public void shouldAlreadyWinner_WhenUserTryAgainAfterWin() throws Exception {
+    public void shouldSendAlreadyWinner_WhenUserTryAgainAfterWin() throws Exception {
         //arrange
         Integer userId = new Random().nextInt();
 
@@ -107,13 +107,16 @@ public class MessageNewHandlerTest {
                 .question("What question")
                 .addCorrectAnswer("Correct")
                 .build();
-        questionAnswer.correctAnswer();
 
         QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
 
-        ConcurrentMapQuestionAnswerState state = new ConcurrentMapQuestionAnswerState();
-        state.put(userId, chainElement);
-        questionAnswerStateMachine = new MessageNewHandler(state, vkApiService, dialogChain, new Counter());
+        ConcurrentMapWinnerState winnerState = new ConcurrentMapWinnerState();
+        winnerState.put(userId, chainElement);
+        questionAnswerStateMachine = new MessageNewHandler(new ConcurrentMapQuestionAnswerState(),
+                winnerState,
+                vkApiService,
+                dialogChain,
+                new Counter());
 
         //act
         questionAnswerStateMachine.handle(mockMsg(userId, msg));

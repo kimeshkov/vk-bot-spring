@@ -21,16 +21,19 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private static final int LIMIT = 300;
 
     private final State<Integer, ChainElement<QuestionAnswer>> questionAnswerState;
+    private final State<Integer, Object> winnerState;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
     private final Counter counter;
 
     @Autowired
     public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> questionAnswerState,
+                             State<Integer, Object> winnerState,
                              VkApiService vkApiService,
                              DialogChain dialogChain,
                              Counter counter) {
         this.questionAnswerState = questionAnswerState;
+        this.winnerState = winnerState;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
         this.counter = counter;
@@ -60,6 +63,11 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
             return;
         }
 
+        if (winnerState.containsKey(userId)) {
+            handleAlreadyWinner(userId);
+            return;
+        }
+
         ChainElement<QuestionAnswer> first = dialogChain.getFirst();
 
         if (underLimit()) {
@@ -71,6 +79,11 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         }
     }
 
+    private void handleAlreadyWinner(int userId) {
+        String msg = Messages.ALREADY_WINNER_MSG.getValue();
+        vkApiService.sendMessage(userId, msg);
+    }
+
     private void handleRegisteredUser(int userId, String msg) {
         if (isStopMsg(msg)) {
             handleStop(userId);
@@ -78,11 +91,6 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         }
 
         ChainElement<QuestionAnswer> chainElement = questionAnswerState.get(userId);
-
-        if(chainElement.current().isAnswered()) {
-            handleAlreadyWinner(userId);
-            return;
-        }
 
         if (isCorrectAnswer(msg, chainElement.current())) {
             if (chainElement.next().isPresent()) {
@@ -97,11 +105,6 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         }
     }
 
-    private void handleAlreadyWinner(int userId) {
-        String msg = Messages.ALREADY_WINNER_MSG.getValue();
-        vkApiService.sendMessage(userId, msg);
-    }
-
     private String prepareMsg(String userMsg) {
         return StringUtils.replaceChars(userMsg.toUpperCase(), 'Ё', 'Е');
     }
@@ -109,7 +112,6 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private boolean underLimit() {
         return counter.get() < LIMIT;
     }
-
 
     private boolean isStopMsg(String msg) {
         return StringUtils.equalsIgnoreCase(msg, Messages.STOP_MSG.getValue());
@@ -136,8 +138,9 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         vkApiService.openPromoStickerPack(userId);
 
         int current = counter.incrementAndGet();
-        LOG.info("Handle {} winner", current);
-        questionAnswerState.get(userId).current().correctAnswer();
+        LOG.info("Handle winner. Total: {}", current);
+        questionAnswerState.remove(userId);
+        winnerState.put(userId, new Object());
 
         if (!vkApiService.isSubscribed(userId)) {
             handleNotSubscribed(userId);

@@ -8,8 +8,6 @@ public class QuestionAnswer {
     private final List<String> correctAnswers;
     private final List<String> options;
 
-    private boolean answered = false;
-
     private QuestionAnswer(String question, List<String> correctAnswers, List<String> options) {
         this.question = question;
         this.correctAnswers = correctAnswers;
@@ -26,14 +24,6 @@ public class QuestionAnswer {
 
     public List<String> getOptions() {
         return options;
-    }
-
-    public boolean isAnswered() {
-        return answered;
-    }
-
-    public void correctAnswer() {
-        this.answered = true;
     }
 
     public static Builder builder() {
