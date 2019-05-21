@@ -73,7 +73,7 @@ public class MessageNewHandlerTest {
     }
 
     @Test
-    public void shouldSendFirstQuestion_WhenStickerMsgAndUserSubscribed() throws Exception {
+    public void shouldSendFirstQuestion_WhenStickerMsg() throws Exception {
         //arrange
         String msg = "Хочу стикер";
         Integer userId = new Random().nextInt();
@@ -84,8 +84,6 @@ public class MessageNewHandlerTest {
 
         QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
 
-
-        when(vkApiService.isSubscribed(userId)).thenReturn(true);
         when(dialogChain.getFirst()).thenReturn(chainElement);
 
         //act
@@ -111,8 +109,6 @@ public class MessageNewHandlerTest {
 
         QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
 
-
-        when(vkApiService.isSubscribed(userId)).thenReturn(true);
         when(dialogChain.getFirst()).thenReturn(chainElement);
 
         //act
