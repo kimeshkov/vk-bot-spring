@@ -8,6 +8,7 @@ import com.barinthecityshow.vkbot.state.Counter;
 import com.barinthecityshow.vkbot.state.State;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageType;
+import com.vk.api.sdk.exceptions.ApiException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 
 @Component
 public class MessageNewHandler extends AbstractNoResponseHandler {
@@ -142,16 +142,22 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     }
 
     private void handleWin(Integer userId) {
-        vkApiService.sendMessage(userId, Messages.WIN_MSG.getValue());
-        vkApiService.openPromoStickerPack(userId);
+        try {
+            vkApiService.openPromoStickerPack(userId);
+            vkApiService.sendMessage(userId, Messages.WIN_MSG.getValue());
 
-        int current = counter.incrementAndGet();
-        LOG.info("Handle winner. Total: {}", current);
-        questionAnswerState.remove(userId);
-        winnerState.put(userId, new Object());
+            int current = counter.incrementAndGet();
+            LOG.info("Handle winner. Total: {}", current);
+            questionAnswerState.remove(userId);
+            winnerState.put(userId, new Object());
 
-        if (!vkApiService.isSubscribed(userId)) {
-            handleNotSubscribed(userId);
+            if (!vkApiService.isSubscribed(userId)) {
+                handleNotSubscribed(userId);
+            }
+        } catch (ApiException e) {
+            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
+            questionAnswerState.remove(userId);
+            LOG.error("Error while promo", e);
         }
     }
 

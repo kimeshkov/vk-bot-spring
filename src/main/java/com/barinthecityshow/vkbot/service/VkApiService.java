@@ -69,17 +69,14 @@ public class VkApiService {
         }
     }
 
-    public void openPromoStickerPack(Integer userId) {
+    public void openPromoStickerPack(Integer userId) throws ApiException {
         try {
             new Stickers(apiClient, accessToken).openPromoStickerPack()
                     .ownerId(-actor.getGroupId())
                     .giftId(RANDOM_GIFT)
                     .userId(userId)
                     .execute();
-        } catch (ApiException e) {
-            LOG.error("INVALID REQUEST", e);
-            throw new RuntimeException(e);
-        } catch (ClientException e) {
+        }  catch (ClientException e) {
             LOG.error("NETWORK ERROR", e);
             throw new RuntimeException(e);
         }
