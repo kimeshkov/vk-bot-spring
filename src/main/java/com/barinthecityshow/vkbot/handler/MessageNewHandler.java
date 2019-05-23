@@ -14,11 +14,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
+
 @Component
 public class MessageNewHandler extends AbstractNoResponseHandler {
     private static final Logger LOG = LoggerFactory.getLogger(MessageNewHandler.class);
 
     private static final int LIMIT = 300;
+
+    private final List<String> startPhrases = Arrays.asList("Хочу стикер", "Хочу стикеры");
 
     private final State<Integer, ChainElement<QuestionAnswer>> questionAnswerState;
     private final State<Integer, Object> winnerState;
@@ -59,7 +65,9 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     }
 
     private void handleNewUser(int userId, String userMsg) {
-        if (!StringUtils.equalsIgnoreCase(userMsg, Messages.START_MSG.getValue())) {
+        boolean isStartMsg = startPhrases.stream().anyMatch(s -> StringUtils.equalsIgnoreCase(userMsg, s));
+
+        if (!isStartMsg) {
             return;
         }
 

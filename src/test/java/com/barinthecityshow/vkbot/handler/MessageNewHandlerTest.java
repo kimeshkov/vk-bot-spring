@@ -74,9 +74,32 @@ public class MessageNewHandlerTest {
     }
 
     @Test
-    public void shouldSendFirstQuestion_WhenStickerMsg() throws Exception {
+    public void shouldSendFirstQuestion_When_Хочу_стикер() throws Exception {
         //arrange
         String msg = "Хочу стикер";
+        Integer userId = new Random().nextInt();
+
+        QuestionAnswer questionAnswer = QuestionAnswer.builder()
+                .question("What question")
+                .build();
+
+        QuestionAnswerChainElement chainElement = new QuestionAnswerChainElement(questionAnswer);
+
+        when(dialogChain.getFirst()).thenReturn(chainElement);
+
+        //act
+        questionAnswerStateMachine.handle(mockMsg(userId, msg));
+
+        //assert
+        String result = Messages.WELCOME_MSG.getValue().concat(questionAnswer.getQuestion());
+        verify(vkApiService).sendMessage(userId, result);
+
+    }
+
+    @Test
+    public void shouldSendFirstQuestion_When_Хочу_Стикеры() throws Exception {
+        //arrange
+        String msg = "Хочу стикеры";
         Integer userId = new Random().nextInt();
 
         QuestionAnswer questionAnswer = QuestionAnswer.builder()
