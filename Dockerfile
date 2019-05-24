@@ -2,6 +2,8 @@
 FROM openjdk:8-jre-alpine
 # copy WAR into image
 COPY target/*.jar /app.jar
-COPY qa.json /qa.json
+COPY first.json /first.json
+COPY second.json /second.json
+COPY third.json /third.json
 # run application with this command line
 CMD ["/usr/bin/java", "-jar", "/app.jar"]

@@ -155,7 +155,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
             questionAnswerState.remove(userId);
             winnerState.put(userId, new Object());
 
-            vkApiService.sendMessage(userId, messages.getMessage("msg.buy"));
+            vkApiService.sendMessage(userId, messages.getMessage("msg.bye"));
             if (!vkApiService.isSubscribed(userId)) {
                 vkApiService.sendMessage(userId, messages.getMessage("msg.subscribe.vk"));
             }
