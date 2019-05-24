@@ -25,24 +25,28 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private static final int LIMIT = 300;
 
     private final List<String> startPhrases = Arrays.asList("Хочу стикер", "Хочу стикеры");
+    private final static String STOP_PHRASE = "Стоп";
 
     private final State<Integer, ChainElement<QuestionAnswer>> questionAnswerState;
     private final State<Integer, Object> winnerState;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
     private final Counter counter;
+    private final Messages messages;
 
     @Autowired
     public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> questionAnswerState,
                              State<Integer, Object> winnerState,
                              VkApiService vkApiService,
                              DialogChain dialogChain,
-                             Counter counter) {
+                             Counter counter,
+                             Messages messages) {
         this.questionAnswerState = questionAnswerState;
         this.winnerState = winnerState;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
         this.counter = counter;
+        this.messages = messages;
     }
 
     @Override
@@ -79,17 +83,16 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         ChainElement<QuestionAnswer> first = dialogChain.getFirst();
 
         if (underLimit()) {
-            String msg = Messages.WELCOME_MSG.getValue().concat(first.current().getQuestion());
-            vkApiService.sendMessage(userId, msg);
+            vkApiService.sendMessage(userId, messages.getMessage("msg.welcome"));
+            vkApiService.sendMessage(userId, first.current().getQuestion());
             questionAnswerState.put(userId, first);
         } else {
-            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
+            vkApiService.sendMessage(userId, messages.getMessage("msg.limit"));
         }
     }
 
     private void handleAlreadyWinner(int userId) {
-        String msg = Messages.ALREADY_WINNER_MSG.getValue();
-        vkApiService.sendMessage(userId, msg);
+        vkApiService.sendMessage(userId, messages.getMessage("msg.already.winner"));
     }
 
     private void handleRegisteredUser(int userId, String msg) {
@@ -122,7 +125,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     }
 
     private boolean isStopMsg(String msg) {
-        return StringUtils.equalsIgnoreCase(msg, Messages.STOP_MSG.getValue());
+        return StringUtils.equalsIgnoreCase(msg, STOP_PHRASE);
     }
 
     private boolean isCorrectAnswer(String msg, QuestionAnswer questionAnswer) {
@@ -132,41 +135,39 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     }
 
     private void handleNext(Integer userId, ChainElement<QuestionAnswer> next) {
-        String msg = Messages.CORRECT_ANS_MSG.getValue().concat(next.current().getQuestion());
-        vkApiService.sendMessage(userId, msg);//todo
+        vkApiService.sendMessage(userId, messages.getMessage("msg.correct.answer"));
+        vkApiService.sendMessage(userId, next.current().getQuestion());
+
         questionAnswerState.put(userId, next);
     }
 
     private void handleWrong(Integer userId) {
-        vkApiService.sendMessage(userId, Messages.WRONG_ANS_MSG.getValue());
+        vkApiService.sendMessage(userId, messages.getMessage("msg.wrong.answer"));
     }
 
     private void handleWin(Integer userId) {
         try {
             vkApiService.openPromoStickerPack(userId);
-            vkApiService.sendMessage(userId, Messages.WIN_MSG.getValue());
+            vkApiService.sendMessage(userId, messages.getMessage("msg.win"));
 
             int current = counter.incrementAndGet();
             LOG.info("Handle winner. Total: {}", current);
             questionAnswerState.remove(userId);
             winnerState.put(userId, new Object());
 
+            vkApiService.sendMessage(userId, messages.getMessage("msg.buy"));
             if (!vkApiService.isSubscribed(userId)) {
-                handleNotSubscribed(userId);
+                vkApiService.sendMessage(userId, messages.getMessage("msg.subscribe.vk"));
             }
         } catch (ApiException e) {
-            vkApiService.sendMessage(userId, Messages.LIMIT_MSG.getValue());
+            vkApiService.sendMessage(userId, messages.getMessage("msg.limit"));
             questionAnswerState.remove(userId);
             LOG.error("Error while promo", e);
         }
     }
 
-    private void handleNotSubscribed(Integer userId) {
-        vkApiService.sendMessage(userId, Messages.SUBSCRIBE_MSG.getValue());
-    }
-
     private void handleStop(Integer userId) {
-        vkApiService.sendMessage(userId, Messages.BYE_MSG.getValue());
+        vkApiService.sendMessage(userId, messages.getMessage("msg.come.later"));
         questionAnswerState.remove(userId);
     }
 }

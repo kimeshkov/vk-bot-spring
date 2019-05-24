@@ -69,18 +69,25 @@ public class AppConfig {
     }
 
     private StickerDialogChain initDialogChain() {
-        Path path = Paths.get("qa.json");
+        List<QuestionAnswer> first = readQuestionAnswersFromFile("first.json");
+        List<QuestionAnswer> second = readQuestionAnswersFromFile("second.json");
+        List<QuestionAnswer> third = readQuestionAnswersFromFile("third.json");
 
-        LOG.info("Try reading qa from file");
+        return new StickerDialogChain(first, second, third);
+    }
+
+    private List<QuestionAnswer> readQuestionAnswersFromFile(String fileName) {
         try {
+            LOG.info("Try reading qa from file {} ", fileName);
+
+            Path path = Paths.get(fileName);
+
             String json = Files.readAllLines(path).stream().collect(Collectors.joining());
 
             Gson gson = new Gson();
-            List<QuestionAnswer> questionAnswers = Arrays.stream(gson.fromJson(json, QuestionAnswer[].class))
+
+            return Arrays.stream(gson.fromJson(json, QuestionAnswer[].class))
                     .collect(Collectors.toList());
-
-            return new StickerDialogChain(questionAnswers);
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

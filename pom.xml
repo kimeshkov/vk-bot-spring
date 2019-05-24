@@ -17,6 +17,7 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<vk.api.version>1.0.2</vk.api.version>
+		<guava.version>23.0</guava.version>
 	</properties>
 
 	<dependencies>
@@ -25,12 +26,25 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/com.vk.api/sdk -->
 		<dependency>
 			<groupId>com.vk.api</groupId>
 			<artifactId>sdk</artifactId>
 			<version>${vk.api.version}</version>
 		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
+		</dependency>
+
 
 
 		<dependency>

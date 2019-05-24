@@ -9,12 +9,18 @@ import java.util.Random;
 
 public class StickerDialogChain implements DialogChain {
     private final Random random;
-    private final List<QuestionAnswer> questionAnswers;
+    private final List<QuestionAnswer> firstLevelQuestionAnswers;
+    private final List<QuestionAnswer> secondLevelQuestionAnswers;
+    private final List<QuestionAnswer> thirdLevelQuestionAnswers;
 
 
-    public StickerDialogChain(List<QuestionAnswer> questionAnswers) {
+    public StickerDialogChain(List<QuestionAnswer> firstLevelQuestionAnswers,
+                              List<QuestionAnswer> secondLevelQuestionAnswers,
+                              List<QuestionAnswer> thirdLevelQuestionAnswers) {
         random = new Random();
-        this.questionAnswers = questionAnswers;
+        this.firstLevelQuestionAnswers = firstLevelQuestionAnswers;
+        this.secondLevelQuestionAnswers = secondLevelQuestionAnswers;
+        this.thirdLevelQuestionAnswers = thirdLevelQuestionAnswers;
     }
 
     @Override
@@ -23,10 +29,21 @@ public class StickerDialogChain implements DialogChain {
     }
 
     private ChainElement<QuestionAnswer> randomQuestion() {
-        return new QuestionAnswerChainElement(questionAnswers.get(random.nextInt(questionAnswers.size())));
+        return QuestionAnswerChainElement.builder()
+                .current(getRandom(firstLevelQuestionAnswers))
+                .next(QuestionAnswerChainElement.builder()
+                        .current(getRandom(secondLevelQuestionAnswers))
+                        .next(QuestionAnswerChainElement.builder()
+                                .current(getRandom(thirdLevelQuestionAnswers))
+                                .build())
+                        .build())
+                .build();
 
     }
 
+    private QuestionAnswer getRandom(List<QuestionAnswer> questionAnswers) {
+        return questionAnswers.get(random.nextInt(questionAnswers.size()));
+    }
 
 
 }

@@ -76,7 +76,7 @@ public class VkApiService {
                     .giftId(RANDOM_GIFT)
                     .userId(userId)
                     .execute();
-        }  catch (ClientException e) {
+        } catch (ClientException e) {
             LOG.error("NETWORK ERROR", e);
             throw new RuntimeException(e);
         }

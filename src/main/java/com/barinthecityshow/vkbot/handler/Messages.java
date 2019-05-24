@@ -1,23 +1,20 @@
 package com.barinthecityshow.vkbot.handler;
 
-public enum Messages {
-    WELCOME_MSG("Привет! Я бот бара в большом городе. Раз хочешь стикер, ответь на вопрос: "),
-    SUBSCRIBE_MSG("И, кстати, подпишись, чтобы не пропустить ничего нового)"),
-    CORRECT_ANS_MSG("Правильно! Следующий вопрос: "),
-    WRONG_ANS_MSG("Эх, неправильно. Напиши СТОП, если сдаешься или попробуй еще раз!"),
-    WIN_MSG("Ура, правильно! Теперь тебе доступны новые стикерпаки от наших друзей ВКонтакте! Срочно проверь https://vk.com/stickers"),
-    ALREADY_WINNER_MSG("Нужно дождаться следующего выпуска на нашем канале! Будут новые вопросы и новые стикеры!"),
-    BYE_MSG("Ок, возвращайся потом"),
-    LIMIT_MSG("Ой, уже все разобрали. Приходи после следующего выпуска!"),
-    STOP_MSG("Стоп");
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.stereotype.Component;
 
-    private String value;
+@Component
+public class Messages {
+    private final MessageSource messageSource;
 
-    Messages(String value) {
-        this.value = value;
+    @Autowired
+    public Messages(MessageSource messageSource) {
+        this.messageSource = messageSource;
     }
 
-    public String getValue() {
-        return value;
+    public String getMessage(String code) {
+        return messageSource.getMessage(code, new Object[]{}, LocaleContextHolder.getLocale());
     }
 }
