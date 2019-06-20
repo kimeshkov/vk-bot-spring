@@ -24,7 +24,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private static final Logger LOG = LoggerFactory.getLogger(MessageNewHandler.class);
 
     private static final int LIMIT = 300;
-    private static final String STAT_MSG = "givemestat";
+    private static final String STAT_MSG = "GIVEMESTAT";
 
     private final List<String> startPhrases = Arrays.asList("Хочу стикер", "Хочу стикеры");
     private final static String STOP_PHRASE = "Стоп";
