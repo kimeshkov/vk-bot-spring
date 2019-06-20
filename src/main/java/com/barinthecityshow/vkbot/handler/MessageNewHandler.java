@@ -90,7 +90,11 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
                 allWantStickerCounter.incrementAndGet();
                 questionAnswerState.put(userId, first);
             } else {
-                vkApiService.sendMessage(userId, messages.getMessage("msg.limit"));
+                if (vkApiService.isSubscribed(userId)) {
+                    vkApiService.sendMessage(userId, messages.getMessage("msg.limit.youtube"));
+                } else {
+                    vkApiService.sendMessage(userId, messages.getMessage("msg.limit.vk"));
+                }
             }
         }
     }
