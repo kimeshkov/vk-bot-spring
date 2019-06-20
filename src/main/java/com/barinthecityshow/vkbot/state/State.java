@@ -10,4 +10,6 @@ public interface State<K, V> {
 
     boolean containsKey(K key);
 
+    int size();
+
 }

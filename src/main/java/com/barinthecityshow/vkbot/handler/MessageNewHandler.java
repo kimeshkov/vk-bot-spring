@@ -4,8 +4,8 @@ import com.barinthecityshow.vkbot.chain.ChainElement;
 import com.barinthecityshow.vkbot.dialog.QuestionAnswer;
 import com.barinthecityshow.vkbot.dialog.chain.DialogChain;
 import com.barinthecityshow.vkbot.service.VkApiService;
-import com.barinthecityshow.vkbot.state.Counter;
 import com.barinthecityshow.vkbot.state.State;
+import com.barinthecityshow.vkbot.statistics.Statistics;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageType;
 import com.vk.api.sdk.exceptions.ApiException;
@@ -17,12 +17,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class MessageNewHandler extends AbstractNoResponseHandler {
     private static final Logger LOG = LoggerFactory.getLogger(MessageNewHandler.class);
 
     private static final int LIMIT = 300;
+    private static final String STAT_MSG = "givemestat";
 
     private final List<String> startPhrases = Arrays.asList("Хочу стикер", "Хочу стикеры");
     private final static String STOP_PHRASE = "Стоп";
@@ -31,21 +33,20 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     private final State<Integer, Object> winnerState;
     private final DialogChain dialogChain;
     private final VkApiService vkApiService;
-    private final Counter counter;
     private final Messages messages;
+
+    private final AtomicInteger allWantStickerCounter = new AtomicInteger();
 
     @Autowired
     public MessageNewHandler(State<Integer, ChainElement<QuestionAnswer>> questionAnswerState,
                              State<Integer, Object> winnerState,
                              VkApiService vkApiService,
                              DialogChain dialogChain,
-                             Counter counter,
                              Messages messages) {
         this.questionAnswerState = questionAnswerState;
         this.winnerState = winnerState;
         this.vkApiService = vkApiService;
         this.dialogChain = dialogChain;
-        this.counter = counter;
         this.messages = messages;
     }
 
@@ -62,40 +63,55 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
         String msg = prepareMsg(userMsg);
 
         if (questionAnswerState.containsKey(userId)) {
-            handleRegisteredUser(userId, msg);
+            handleUserInProgress(userId, msg);
         } else {
             handleNewUser(userId, msg);
         }
     }
 
     private void handleNewUser(int userId, String userMsg) {
+        if (STAT_MSG.equals(userMsg) && vkApiService.isAdmin(userId)) {
+            handleCollectStat(userId);
+            return;
+        }
+
         boolean isStartMsg = startPhrases.stream().anyMatch(s -> StringUtils.equalsIgnoreCase(userMsg, s));
+        if (isStartMsg) {
+            if (winnerState.containsKey(userId)) {
+                handleAlreadyWinner(userId);
+                return;
+            }
 
-        if (!isStartMsg) {
-            return;
+            ChainElement<QuestionAnswer> first = dialogChain.getFirst();
+
+            if (underLimit()) {
+                vkApiService.sendMessage(userId, messages.getMessage("msg.welcome"));
+                vkApiService.sendMessage(userId, first.current().getQuestion());
+                allWantStickerCounter.incrementAndGet();
+                questionAnswerState.put(userId, first);
+            } else {
+                vkApiService.sendMessage(userId, messages.getMessage("msg.limit"));
+            }
         }
+    }
 
-        if (winnerState.containsKey(userId)) {
-            handleAlreadyWinner(userId);
-            return;
-        }
+    private void handleCollectStat(int userId) {
+        String statMsg = Statistics.builder()
+                .allWantSticker(allWantStickerCounter.get())
+                .allUsersInDialog(questionAnswerState.size())
+                .allWinners(winnerState.size())
+                .build()
+                .prettyPrint();
 
-        ChainElement<QuestionAnswer> first = dialogChain.getFirst();
+        vkApiService.sendMessage(userId, statMsg);
 
-        if (underLimit()) {
-            vkApiService.sendMessage(userId, messages.getMessage("msg.welcome"));
-            vkApiService.sendMessage(userId, first.current().getQuestion());
-            questionAnswerState.put(userId, first);
-        } else {
-            vkApiService.sendMessage(userId, messages.getMessage("msg.limit"));
-        }
     }
 
     private void handleAlreadyWinner(int userId) {
         vkApiService.sendMessage(userId, messages.getMessage("msg.already.winner"));
     }
 
-    private void handleRegisteredUser(int userId, String msg) {
+    private void handleUserInProgress(int userId, String msg) {
         if (isStopMsg(msg)) {
             handleStop(userId);
             return;
@@ -121,7 +137,7 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
     }
 
     private boolean underLimit() {
-        return counter.get() < LIMIT;
+        return winnerState.size() < LIMIT;
     }
 
     private boolean isStopMsg(String msg) {
@@ -150,8 +166,6 @@ public class MessageNewHandler extends AbstractNoResponseHandler {
             vkApiService.openPromoStickerPack(userId);
             vkApiService.sendMessage(userId, messages.getMessage("msg.win"));
 
-            int current = counter.incrementAndGet();
-            LOG.info("Handle winner. Total: {}", current);
             questionAnswerState.remove(userId);
             winnerState.put(userId, new Object());
 

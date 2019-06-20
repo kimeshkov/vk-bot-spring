@@ -6,7 +6,6 @@ import com.barinthecityshow.vkbot.dialog.chain.QuestionAnswerChainElement;
 import com.barinthecityshow.vkbot.service.VkApiService;
 import com.barinthecityshow.vkbot.state.ConcurrentMapQuestionAnswerState;
 import com.barinthecityshow.vkbot.state.ConcurrentMapWinnerState;
-import com.barinthecityshow.vkbot.state.Counter;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonObject;
 import com.vk.api.sdk.callback.objects.messages.CallbackMessageBase;
@@ -64,7 +63,6 @@ public class MessageNewHandlerTest {
                 new ConcurrentMapWinnerState(),
                 vkApiService,
                 dialogChain,
-                new Counter(),
                 new Messages(messageSource));
     }
 
@@ -235,7 +233,6 @@ public class MessageNewHandlerTest {
                 winnerState,
                 vkApiService,
                 dialogChain,
-                new Counter(),
                 new Messages(messageSource));
 
         //act

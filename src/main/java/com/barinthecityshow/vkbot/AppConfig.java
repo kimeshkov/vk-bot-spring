@@ -41,8 +41,8 @@ public class AppConfig {
 
         return new VkApiService(apiClient, actor,
                 env.getProperty("confirmationCode"),
-                env.getProperty("promoAccessToken")
-        );
+                env.getProperty("promoAccessToken"),
+                env.getProperty("admin.id", Integer.class));
     }
 
     private GroupActor initVkApi(VkApiClient apiClient) {

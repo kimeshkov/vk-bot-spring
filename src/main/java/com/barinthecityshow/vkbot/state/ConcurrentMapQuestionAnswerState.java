@@ -30,4 +30,9 @@ public class ConcurrentMapQuestionAnswerState implements State<Integer, ChainEle
     public boolean containsKey(Integer key) {
         return state.containsKey(key);
     }
+
+    @Override
+    public int size() {
+        return state.size();
+    }
 }

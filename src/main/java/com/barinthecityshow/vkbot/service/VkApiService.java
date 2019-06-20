@@ -9,6 +9,7 @@ import com.vk.api.sdk.objects.groups.MemberStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class VkApiService {
@@ -21,14 +22,20 @@ public class VkApiService {
     private final String confirmationCode;
     private final String accessToken;
 
+    private final int adminId;
+
     private final Random random = new Random();
 
-
-    public VkApiService(VkApiClient apiClient, GroupActor actor, String confirmationCode, String accessToken) {
+    public VkApiService(VkApiClient apiClient,
+                        GroupActor actor,
+                        String confirmationCode,
+                        String accessToken,
+                        int adminId) {
         this.apiClient = apiClient;
         this.actor = actor;
         this.confirmationCode = confirmationCode;
         this.accessToken = accessToken;
+        this.adminId = adminId;
     }
 
     public String confirm() {
@@ -80,6 +87,10 @@ public class VkApiService {
             LOG.error("NETWORK ERROR", e);
             throw new RuntimeException(e);
         }
+    }
+
+    public boolean isAdmin(Integer userId) {
+        return Objects.equals(adminId, userId);
     }
 }
 
